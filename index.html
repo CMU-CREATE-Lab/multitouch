@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <title>Touch Test</title>
+   <meta name="viewport" content="width=device-width, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+   <style type="text/css">
+      #box_container {
+         position: relative;
+         border: 1px solid black;
+         width: 100%;
+         height: 300px;
+      }
+
+      .box {
+         position: absolute;
+         border: 1px solid black;
+         width: 100px;
+         height: 100px;
+         z-index: 1;
+      }
+
+      #output_area {
+         margin-top: 10px;
+         border: 1px solid black;
+         width: 100%;
+         height: 300px;
+         font-family: Monoco, Courier, "Courier New", sans-serif;
+         font-size: 9pt;
+         overflow: scroll;
+      }
+   </style>
+   <script language="JavaScript" type="text/javascript" src="js/jquery-1.8.1.min.js"></script>
+   <script language="JavaScript" type="text/javascript" src="js/org/cmucreatelab/events/EventManager.js"></script>
+   <script language="JavaScript" type="text/javascript" src="js/org/cmucreatelab/util/Point.js"></script>
+   <script language="JavaScript" type="text/javascript" src="js/org/cmucreatelab/multitouch/Touch.js"></script>
+   <script language="JavaScript" type="text/javascript" src="js/org/cmucreatelab/multitouch/TouchManager.js"></script>
+
+   <script language="JavaScript" type="text/javascript">
+      var touchManager = new org.cmucreatelab.multitouch.TouchManager();
+      var pinchParams = null;
+      var haveViewerEventListenersBeenAdded = false;
+
+      $(document).ready(function()
+                        {
+                        $("#clear_button")['click'](function()
+                                                    {
+                                                    $("#output_area").empty();
+                                                    });
+
+                        // register event handlers with the TouchManager
+                        touchManager.addEventListener('tap', tapEventHandler);
+                        touchManager.addEventListener('pan', panEventHandler);
+                        touchManager.addEventListener('pinch-start', pinchStartEventHandler);
+                        touchManager.addEventListener('pinch', pinchEventHandler);
+
+                        var isDesktopMozillaWithLegacyTouchSupport = (jQuery['browser']['mozilla'] == true) && (parseInt(jQuery['browser']['version']) < 18) && (navigator.userAgent.indexOf("Android") < 0);
+                        log("isDesktopMozillaWithLegacyTouchSupport=" + isDesktopMozillaWithLegacyTouchSupport);
+                        log(navigator.userAgent);
+
+                        var touchSensitiveElements = $(".touchSensitive");
+
+                        $.each(touchSensitiveElements, function(index, element)
+                        {
+                        var elmt = element;
+                        if (isDesktopMozillaWithLegacyTouchSupport)
+                           {
+                           log("Configuring touch for legacy Mozilla events...");
+                           elmt.addEventListener("MozTouchDown", function(event) { setZIndex(event, 1000); touchManager.onTouchStartMozilla(event); });
+                           elmt.addEventListener("MozTouchMove", touchManager.onTouchMoveMozilla);
+                           elmt.addEventListener("MozTouchUp", function(event) { setZIndex(event, 1); touchManager.onTouchEndMozilla(event); });
+                           }
+                        else
+                           {
+                           log("Configuring touch for W3C events...");
+                           elmt.addEventListener("touchstart", function(event) { setZIndex(event, 1000); touchManager.onTouchStart(event); });
+                           elmt.addEventListener("touchmove", touchManager.onTouchMove);
+                           elmt.addEventListener("touchend", function(event) { setZIndex(event, 2); touchManager.onTouchEndOrCancel(event); });
+                           elmt.addEventListener("touchcancel", function(event) { setZIndex(event, 2); touchManager.onTouchEndOrCancel(event); });
+                           }
+                        });
+                        });
+
+      function setZIndex(event, zIndex)
+         {
+         if (event && event.target.id != "box_container")
+            {
+            $(".box").css("z-index", 1);
+            $(event.target).css("z-index", zIndex);
+            }
+         }
+
+      function tapEventHandler(touchPoint, elapsedTouchTime, event)
+         {
+         //log("tapEventHandler(): tapped for " + elapsedTouchTime + " millis on element " + event.target.id);
+         }
+
+      function panEventHandler(pixelDeltaFromPrevious, event)
+         {
+         if (pixelDeltaFromPrevious != null && event.target.id != "box_container")
+            {
+            // get the touched element's current position and size
+            var element = $(event.target);
+            var elementWidth = element.outerWidth();
+            var elementHeight = element.outerHeight();
+            var currentPosition = element.position();
+            var topLeftPoint = new org.cmucreatelab.util.Point(currentPosition.left, currentPosition.top);
+
+            // compute the new position using the delta
+            var newPosition = topLeftPoint.minus(pixelDeltaFromPrevious);
+
+            // get the container dimensions
+            var boxContainer = $("#box_container");
+            var containerWidth = boxContainer.width();
+            var containerHeight = boxContainer.height();
+
+            // clamp the box position so that it's within bounds
+            newPosition = new org.cmucreatelab.util.Point(Math.max(0, newPosition.x), Math.max(0, newPosition.y));
+            newPosition = new org.cmucreatelab.util.Point(Math.min(containerWidth - elementWidth, newPosition.x), Math.min(containerHeight - elementHeight, newPosition.y));
+
+            element.css("left", newPosition.x + "px");
+            element.css("top", newPosition.y + "px");
+            }
+         }
+
+      function pinchStartEventHandler(touch1, touch2, midpoint, event)
+         {
+         if (event.target.id != "box_container")
+            {
+            // get the touched element's current position and size so we can compute the pinchMidpoint
+            var element = $(event.target);
+            var elementWidth = element.outerWidth();
+            var elementHeight = element.outerHeight();
+            var currentPosition = element.position();
+            var topLeftPoint = new org.cmucreatelab.util.Point(currentPosition.left, currentPosition.top);
+            var bottomRightPoint = topLeftPoint.plusXY(elementWidth, elementHeight);
+
+            // only set the pinchMidpoint if both touches are inside the box; otherwise, set it to null
+            var p1 = touch1.getCurrentPoint();
+            var p2 = touch2.getCurrentPoint();
+            if (topLeftPoint.x <= p1.x && p1.x <= bottomRightPoint.x &&
+                topLeftPoint.y <= p1.y && p1.y <= bottomRightPoint.y &&
+                topLeftPoint.x <= p2.x && p2.x <= bottomRightPoint.x &&
+                topLeftPoint.y <= p2.y && p2.y <= bottomRightPoint.y)
+               {
+               var x1, x2, y1, y2;
+
+               if (p1.x <= p2.x)
+                  {
+                  x1 = p1.x - topLeftPoint.x;
+                  x2 = topLeftPoint.x + elementWidth - p2.x;
+                  }
+               else
+                  {
+                  x1 = p2.x - topLeftPoint.x;
+                  x2 = topLeftPoint.x + elementWidth - p1.x;
+                  }
+
+               if (p1.y <= p2.y)
+                  {
+                  y1 = p1.y - topLeftPoint.y;
+                  y2 = topLeftPoint.y + elementHeight - p2.y;
+                  }
+               else
+                  {
+                  y1 = p2.y - topLeftPoint.y;
+                  y2 = topLeftPoint.y + elementHeight - p1.y;
+                  }
+
+               pinchParams = {
+                  "x1" : x1,
+                  "x2" : x2,
+                  "y1" : y1,
+                  "y2" : y2
+               };
+               }
+            else
+               {
+               pinchParams = null;
+               }
+            }
+         }
+
+      function pinchEventHandler(scaleDeltaX, scaleDeltaY, scaleDeltaXY, touch1, touch2, event)
+         {
+         if (event.target.id != "box_container" && pinchParams != null)
+            {
+            var element = $(event.target);
+            var p1 = touch1.getCurrentPoint();
+            var p2 = touch2.getCurrentPoint();
+
+            var newPosition = new org.cmucreatelab.util.Point(0, 0);
+
+            if (p1.x <= p2.x)
+               {
+               newPosition.x = p1.x - pinchParams.x1;
+               }
+            else
+               {
+               newPosition.x = p2.x - pinchParams.x1;
+               }
+
+            if (p1.y <= p2.y)
+               {
+               newPosition.y = p1.y - pinchParams.y1;
+               }
+            else
+               {
+               newPosition.y = p2.y - pinchParams.y1;
+               }
+
+            // get the container dimensions
+            var boxContainer = $("#box_container");
+            var containerWidth = boxContainer.width();
+            var containerHeight = boxContainer.height();
+
+            // compute the new dimensions, clamping them to a max equal to the container size
+            var newWidth = Math.min(containerWidth, Math.abs(p1.x - p2.x) + pinchParams.x1 + pinchParams.x2);
+            var newHeight = Math.min(containerHeight, Math.abs(p1.y - p2.y) + pinchParams.y1 + pinchParams.y2);
+
+            // clamp the box position and size so that it's within bounds
+            newPosition = new org.cmucreatelab.util.Point(Math.max(0, newPosition.x), Math.max(0, newPosition.y));
+            newPosition = new org.cmucreatelab.util.Point(Math.min(containerWidth - newWidth, newPosition.x), Math.min(containerHeight - newHeight, newPosition.y));
+
+            element.outerWidth(newWidth);
+            element.outerHeight(newHeight);
+            element.css("left", newPosition.x + "px");
+            element.css("top", newPosition.y + "px");
+            }
+         }
+
+      function log(msg)
+         {
+         console.log(msg);
+         var outputArea = $("#output_area");
+         outputArea.html(msg + "<br>" + outputArea.html());
+         }
+   </script>
+</head>
+<body>
+<div id="box_container" class="touchSensitive">
+   <div id="box1" class="touchSensitive, box" style="background-color:red; top:0;left:0;"></div>
+   <div id="box2" class="touchSensitive, box" style="background-color:blue;  top:0;left:150px;"></div>
+</div>
+<div id="output_area"></div>
+<button id="clear_button">Clear</button>
+</body>
+</html>

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <title>Touch Test</title>
+   <meta name="viewport" content="width=device-width, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+   <style type="text/css">
+      #gigapan_panel {
+         border: 1px solid black;
+         width: 500px;
+         height: 300px;
+         background-color: black;
+      }
+
+      #output_area {
+         margin-top: 10px;
+         border: 1px solid black;
+         width: 100%;
+         height: 300px;
+         font-family: Monoco, Courier, "Courier New", sans-serif;
+         font-size: 9pt;
+         overflow: scroll;
+      }
+   </style>
+   <script language="JavaScript" type="text/javascript" src="js/jquery-1.8.1.min.js"></script>
+   <script language="JavaScript" type="text/javascript" src="js/seadragon/seadragon-min.js"></script>
+   <script language="JavaScript" type="text/javascript" src="js/org/cmucreatelab/events/EventManager.js"></script>
+   <script language="JavaScript" type="text/javascript" src="js/org/cmucreatelab/util/Point.js"></script>
+   <script language="JavaScript" type="text/javascript" src="js/org/cmucreatelab/multitouch/Touch.js"></script>
+   <script language="JavaScript" type="text/javascript" src="js/org/cmucreatelab/multitouch/TouchManager.js"></script>
+   <script language="JavaScript" type="text/javascript" src="js/org/gigapan/seadragon/GigapanTileSource.js"></script>
+   <script language="JavaScript" type="text/javascript" src="js/org/gigapan/seadragon/SeadragonUtils.js"></script>
+
+   <script language="JavaScript" type="text/javascript">
+      var SeadragonUtils = org.gigapan.seadragon.SeadragonUtils;
+      var touchManager = new org.cmucreatelab.multitouch.TouchManager();
+      var pinchMidpoint = null;
+      var haveViewerEventListenersBeenAdded = false;
+
+      var viewer = null;
+      var gigapan = {
+         "gigapanId" : 3786,
+         "gigapanAuthKey" : null,
+         "width" : 46459,
+         "height" : 23803,
+         "levels" : 9,
+         "remoteTileServerUrlPrefix" : "http://tile03.gigapan.org/gigapans0/3786/tiles"
+      }
+
+      $(document).ready(function()
+                        {
+                        $("#clear_button")['click'](function()
+                                                    {
+                                                    $("#output_area").empty();
+                                                    });
+
+                        // register event handlers with the TouchManager
+                        touchManager.addEventListener('tap', tapEventHandler);
+                        touchManager.addEventListener('pan', panEventHandler);
+                        touchManager.addEventListener('pinch-start', pinchStartEventHandler);
+                        touchManager.addEventListener('pinch', pinchEventHandler);
+
+                        // max number of concurrent image downloads
+                        Seadragon.Config.imageLoaderLimit = 6;
+
+                        Seadragon.Config.autoHideControls = false;
+                        Seadragon.Config.imagePath = "js/seadragon/img/";
+                        Seadragon.Config.animationTime = 2.5;
+
+                        // create and initialize the viewer
+                        viewer = new Seadragon.Viewer("gigapan_panel");
+                        viewer.setDashboardEnabled(false);
+                        viewer.addEventListener("open", handleViewerOpen);
+                        viewer.tracker.clickHandler = null;
+
+                        // load the gigapan
+                        loadGigapan();
+
+                        });
+
+      function loadGigapan()
+         {
+         // clear the viewer
+         viewer.close();
+
+         window.setTimeout(function()
+                           {
+                           // create the tile source
+                           var gigapanSource = new org.gigapan.seadragon.GigapanTileSource(
+                                 gigapan['remoteTileServerUrlPrefix'],
+                                 gigapan['width'],
+                                 gigapan['height']
+                           );
+
+                           // tell the viewer to open the tile source
+                           viewer.openTileSource(gigapanSource);
+                           }, 1);
+         }
+
+      function handleViewerOpen(viewer)
+         {
+         if (haveViewerEventListenersBeenAdded)
+            {
+            return;
+            }
+
+         haveViewerEventListenersBeenAdded = true;
+
+         var isMozillaWithLegacyTouchSupport = (jQuery['browser']['mozilla'] == true) && (parseInt(jQuery['browser']['version']) < 18);
+         log("isMozillaWithLegacyTouchSupport=" + isMozillaWithLegacyTouchSupport);
+         log(navigator.userAgent);
+
+         var touchSensitiveElement = viewer.drawer.elmt;
+
+         if (isMozillaWithLegacyTouchSupport)
+            {
+            log("Configuring touch for legacy Mozilla events...");
+            Seadragon.Utils.addEvent(touchSensitiveElement, "MozTouchDown", touchManager.onTouchStartMozilla);
+            Seadragon.Utils.addEvent(touchSensitiveElement, "MozTouchMove", touchManager.onTouchMoveMozilla);
+            Seadragon.Utils.addEvent(touchSensitiveElement, "MozTouchUp", touchManager.onTouchEndMozilla);
+            }
+         else
+            {
+            log("Configuring touch for W3C events...");
+            Seadragon.Utils.addEvent(touchSensitiveElement, "touchstart", touchManager.onTouchStart);
+            Seadragon.Utils.addEvent(touchSensitiveElement, "touchmove", touchManager.onTouchMove);
+            Seadragon.Utils.addEvent(touchSensitiveElement, "touchend", touchManager.onTouchEndOrCancel);
+            Seadragon.Utils.addEvent(touchSensitiveElement, "touchcancel", touchManager.onTouchEndOrCancel);
+            }
+         }
+
+      function tapEventHandler(touchPoint, elapsedTouchTime, event)
+         {
+         if (viewer.isOpen() && viewer.viewport)
+            {
+            var seadragonTouchPoint = touchPoint.toSeadragonPoint();
+            var viewerPositionInPixelCoords = Seadragon.Utils.getElementPosition(viewer.elmt);
+            var touchPositionInPixelCoords = seadragonTouchPoint.minus(viewerPositionInPixelCoords);
+            var touchPointInSeadragonCoords = SeadragonUtils.convertPageCoordsToSeadragonCoords(touchPositionInPixelCoords, viewer);
+            }
+         }
+
+      function panEventHandler(pixelDeltaFromPrevious, event)
+         {
+         if (viewer.isOpen() && viewer.viewport)
+            {
+            var panBy = viewer.viewport.deltaPointsFromPixels(pixelDeltaFromPrevious);
+            viewer.viewport.panBy(panBy);
+            }
+         }
+
+      function pinchStartEventHandler(touch1, touch2, midpoint, event)
+         {
+         if (viewer.isOpen() && viewer.viewport && midpoint != null)
+            {
+            // record the current midpoint in Seadragon coords so all future pinch events during this
+            // pinch will zoom about this point
+            pinchMidpoint = SeadragonUtils.convertPageCoordsToSeadragonCoords(midpoint.toSeadragonPoint(), viewer);
+            }
+         }
+
+      function pinchEventHandler(scaleDeltaX, scaleDeltaY, scaleDeltaXY, touch1, touch2, event)
+         {
+         // clamp the zoom scale delta to within [.8, 1.2]
+         scaleDeltaXY = Math.max(.8, Math.min(1.2, scaleDeltaXY));
+         if (viewer.isOpen() && viewer.viewport && pinchMidpoint != null)
+            {
+            viewer.viewport.zoomBy(scaleDeltaXY, pinchMidpoint);
+            }
+         }
+
+      function log(msg)
+         {
+         console.log(msg);
+         var outputArea = $("#output_area");
+         outputArea.html(msg + "<br>" + outputArea.html());
+         }
+   </script>
+</head>
+<body>
+<div id="gigapan_panel"></div>
+<div id="output_area"></div>
+<button id="clear_button">Clear</button>
+</body>
+</html>
