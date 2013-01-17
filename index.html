@@ -61,21 +61,20 @@
 
                         $.each(touchSensitiveElements, function(index, element)
                         {
-                        var elmt = element;
                         if (isDesktopMozillaWithLegacyTouchSupport)
                            {
                            log("Configuring touch for legacy Mozilla events...");
-                           elmt.addEventListener("MozTouchDown", function(event) { setZIndex(event, 1000); touchManager.onTouchStartMozilla(event); });
-                           elmt.addEventListener("MozTouchMove", touchManager.onTouchMoveMozilla);
-                           elmt.addEventListener("MozTouchUp", function(event) { setZIndex(event, 1); touchManager.onTouchEndMozilla(event); });
+                           element.addEventListener("MozTouchDown", function(event) { setZIndex(event, 1000); touchManager.onTouchStartMozilla(event); });
+                           element.addEventListener("MozTouchMove", touchManager.onTouchMoveMozilla);
+                           element.addEventListener("MozTouchUp", function(event) { setZIndex(event, 1); touchManager.onTouchEndMozilla(event); });
                            }
                         else
                            {
                            log("Configuring touch for W3C events...");
-                           elmt.addEventListener("touchstart", function(event) { setZIndex(event, 1000); touchManager.onTouchStart(event); });
-                           elmt.addEventListener("touchmove", touchManager.onTouchMove);
-                           elmt.addEventListener("touchend", function(event) { setZIndex(event, 2); touchManager.onTouchEndOrCancel(event); });
-                           elmt.addEventListener("touchcancel", function(event) { setZIndex(event, 2); touchManager.onTouchEndOrCancel(event); });
+                           element.addEventListener("touchstart", function(event) { setZIndex(event, 1000); touchManager.onTouchStart(event); });
+                           element.addEventListener("touchmove", touchManager.onTouchMove);
+                           element.addEventListener("touchend", function(event) { setZIndex(event, 2); touchManager.onTouchEndOrCancel(event); });
+                           element.addEventListener("touchcancel", function(event) { setZIndex(event, 2); touchManager.onTouchEndOrCancel(event); });
                            }
                         });
                         });
