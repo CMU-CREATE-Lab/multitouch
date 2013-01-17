@@ -1,0 +1,3 @@
+Changes made to the original:
+* No longer considering Chrome to have bad canvas support.  I removed the part of the conditional which disables
+  canvas support for Chrome.  Doing so fixed issue #1.
