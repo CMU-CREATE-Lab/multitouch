@@ -1,0 +1,1 @@
+We're using the CREATE Lab fork of Seadragon Ajax available at: https://github.com/CMU-CREATE-Lab/seadragon-ajax
