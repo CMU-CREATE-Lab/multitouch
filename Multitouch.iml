@@ -4,6 +4,10 @@
     <exclude-output />
     <content url="file://$MODULE_DIR$" />
     <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" name="CREATE Lab Commons JavaScript" level="project" />
+    <orderEntry type="library" name="jQuery 1.10.2" level="project" />
+    <orderEntry type="library" name="Seadragon" level="project" />
+    <orderEntry type="library" name="Seadragon Gigapan" level="project" />
   </component>
 </module>
 

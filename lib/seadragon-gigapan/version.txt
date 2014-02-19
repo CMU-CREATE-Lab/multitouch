@@ -1,2 +1,2 @@
-tag v1.1
-commit 44b8505
+tag v1.2
+commit eef4eb4
