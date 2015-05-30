@@ -80,6 +80,11 @@
   </component>
   <component name="libraryTable">
     <library name="CREATE Lab Commons JavaScript" type="javaScript">
+      <properties>
+        <sourceFilesUrls>
+          <item url="file://$PROJECT_DIR$/lib/commons-javascript/org/cmucreatelab/events/EventManager.js" />
+        </sourceFilesUrls>
+      </properties>
       <CLASSES />
       <JAVADOC />
       <SOURCES>
@@ -101,6 +106,13 @@
       <SOURCES />
     </library>
     <library name="Seadragon Gigapan" type="javaScript">
+      <properties>
+        <sourceFilesUrls>
+          <item url="file://$PROJECT_DIR$/lib/seadragon-gigapan/org/gigapan/GigapanUtils.js" />
+          <item url="file://$PROJECT_DIR$/lib/seadragon-gigapan/org/gigapan/seadragon/GigapanTileSource.js" />
+          <item url="file://$PROJECT_DIR$/lib/seadragon-gigapan/org/gigapan/seadragon/SeadragonUtils.js" />
+        </sourceFilesUrls>
+      </properties>
       <CLASSES />
       <JAVADOC />
       <SOURCES>
